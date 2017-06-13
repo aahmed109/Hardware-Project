@@ -23,7 +23,8 @@ int pym;
 int hit;
 int score;
 int times;
-
+int jumping;
+int delayer;
 unsigned char obs[32];
 unsigned char person1[32];
 unsigned char person2[32];
@@ -224,17 +225,17 @@ unsigned char obstacle[] = {	0b00000000,
 	0b00000000,
 	0b00000000,
 	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b00000000,
+	0b11110000,
 	0b11111000,
-	0b11111100,
-	0b11111000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000
+	0b11110000
 };
 
 unsigned char jPerson[] = {
@@ -282,12 +283,12 @@ unsigned char person[] = {
 	0b00000000,
 	0b10000000,
 	0b01110000,
+	0b11111100,
 	0b01111100,
-	0b11111111,
-	0b00111111,
-	0b11111010,
-	0b00001010,
-	0b00001010, //matrix 1
+	0b11111100,
+	0b00101000,
+	0b00101000,
+	0b00000000, //matrix 1
 	0b00000000,
 	0b00000000,
 	0b00000000,
@@ -353,46 +354,20 @@ void drawOver(){
 }
 
 void MoveLeft(){
-	if(obstacle[0]) return;
-	if(px==13) {
-		obstacle[7]=obstacle[18];
-		obstacle[18]=0;		
-		obstacle[6]=obstacle[17];
-		obstacle[17] =0;
-		obstacle[5] = obstacle[16];
-		obstacle[16]=0;
-		//px=0;
-	}
 	
-	
-	unsigned char a = obstacle[0];
-	unsigned char b = obstacle[1];
-	unsigned char c = obstacle[2];
-	for(int i=1; i<32; i++){
-		//if(i<=7||i>16){
-			obstacle[i-1]=obstacle[i];
-		//}
-		/*else{
-			
-		}*/
-		
-	}
-	px++;
-	//obstacle[29] = a;
-	//obstacle[30] = b;
-	obstacle[31] = a;
-	a=b;
-	b=c;
-	c=0;
-	//obstacle[31] = 0;
-	if(px>17) 
+	for (int i = 1; i < 32; i++)
 	{
-		for (int i=0;i<32;i++){
-			obstacle[i] = obs[i];
+		if (i == 16)
+		{
+			obstacle[7] = obstacle[16];
 		}
-		px=0;
+		else
+		{
+			obstacle[i-1] = obstacle[i];
+		}
 	}
-	
+	obstacle[31] = obstacle[0];
+		
 	char buffer[1];
 	itoa(px,buffer);
 	Lcd4_Write_String(buffer);
@@ -401,9 +376,9 @@ void MoveLeft(){
 }
 void MoveUp(){
 	unsigned char a[32];
-	if(py>=7&& pym<7){MoveDown();}
+	if(py>=10 && pym<10){MoveDown();}
 	
-	else if(py>=7 && pym>=7) {py =0; pym = 0; return;}
+	else if(py>=10 && pym>=10) {py =0; pym = 0; return;}
 	
 	else{
 	for(int i=8; i<16; i++){
@@ -446,7 +421,7 @@ void Draw(){
 		
 		PORTB = person[j]|road[j]|obstacle[j];
 		PORTC = jPerson[j];
-		if(person[j-1] & obstacle[j] != 0x00) {hit = 1; return;}
+		if((person[j+8] & obstacle[j]) != 0) {hit = 1;}
 		_delay_ms(1);
 	}
 }
@@ -473,6 +448,7 @@ int main(void)
 	for(int i = 0; i<32; i++) {obs[i]= obstacle[i];}
 	for(int i=0;i<32;i++) {person1[i]=person[i]; person2[i] = person[i];}
 	init();
+	int k = 2;
     while (1) 
     {
 		times++;
@@ -484,16 +460,35 @@ int main(void)
 		voltage = (float)result*5.0/1024.0;
 		//if(voltage >3.0){MoveUp();}*/		
 		
-		Draw();
-		if(hit == 1) {while(1) {Draw();}}
-		/*if(PINA & (1<<PA5) == 1){
-			//MoveUp();
-			while(1){
-				PORTB = person[11];
-			}
-		}*/
+		for (int q = 0; q<3;q++)
+		{
+			Draw();
+		}
+		//if (hit == 2) {for (int i = 0; i < 100; i++) Draw(); hit = 1;}
+		if(hit == 1) {while(1) {
+			drawOver();
+			/*pickColumn(0);
+			PORTB = 0xFF;
+			PORTC = 0xFF;*/
+			}}
+			
+		/*if(delayer == 1) {MoveLeft(); delayer = 0;}
+		else delayer = 1;*/
 		MoveLeft();
-		MoveUp();
+		if(jumping==0){
+			if((PINA & (1<<PA5)) == 32) {
+				 jumping =1;
+			}
+		}
+		else{
+			MoveUp();
+			jumping++;
+			if (jumping>20)
+			{
+				jumping = 0;
+				py=0;pym=0;
+			}
+		}
 		//MoveDown();
     }
 	//drawOver();
